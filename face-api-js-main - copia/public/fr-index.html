@@ -1,40 +1,82 @@
-<style>
-    img {
-        max-width: 45%;
-        display: block;
-        margin-bottom: 10px;
-    }
-    canvas {
-        position: absolute;
-    }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Comparison</title>
+    <style>
+        video, canvas, img {
+            max-width: 45%;
+        }
+        canvas {
+            position: absolute;
+        }
+    </style>
+</head>
+<body>
 
-    .imagenes {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-
-    .imagenes > * {
-        padding: 0 1em;
-    }
-
-</style>
-
-<input type="text" id="image1" placeholder="URL de la imagen 1 (referencia)" />
-<input type="text" id="image2" placeholder="URL de la imagen 2 (a comparar)" />
-<button onclick="run()">Comparar Imágenes</button>
-
-<div class="imagenes">
+<h2>Camera</h2>
+<video id="video" autoplay playsinline></video>
 <canvas id="canvas"></canvas>
-<img id="face1" />
-<img id="face2" />
 
-<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT50rBtXg3fsHuMLt2idatpzylBS96xvNstkQ&s">
-<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTGv0ZIrLidHrXmxdSY38qwW3_FyQZhJo-sFQ&s">
-<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQb-NGEQDekk2BwsllLjk4tcIM_BPIzXECdsg&s">
-<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSf8LZk98dkqzBdcXuQ4OhFcAg4Oiv6Gye9DQ&s">
+<h2>Upload Image</h2>
+<input type="file" id="imageUpload" accept="image/*" />
+<img id="uploadedImage" />
 
-</div>
-<p id="timeTaken"></p> <!-- Contador para mostrar el tiempo -->
-<script src="./face-api.min.js"></script>
-<script src="./fr-scripts.js"></script>
+<button id="compareButton">Compare Images</button>
+
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+<script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const imageUpload = document.getElementById('imageUpload');
+    const uploadedImage = document.getElementById('uploadedImage');
+    const compareButton = document.getElementById('compareButton');
+    let uploadedFaceData;
+
+    function startVideo() {
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                console.error("Error accessing the camera: ", err);
+                alert("Could not access the camera.");
+            });
+    }
+
+    async function loadModels() {
+        await Promise.all([
+            faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
+            faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+            faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
+        ]);
+    }
+
+    imageUpload.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const img = await faceapi.bufferToImage(file);
+            uploadedImage.src = img.src;
+            uploadedFaceData = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+        }
+    });
+
+    compareButton.addEventListener('click', async () => {
+        const capturedFaceData = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
+
+        if (!uploadedFaceData || !capturedFaceData) {
+            alert("No faces detected in one or both images.");
+            return;
+        }
+
+        const faceMatcher = new faceapi.FaceMatcher(uploadedFaceData);
+        const result = faceMatcher.findBestMatch(capturedFaceData.descriptor);
+        alert(result.toString());
+    });
+
+    loadModels().then(startVideo);
+</script>
+
+</body>
+</html>
