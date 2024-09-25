@@ -1,0 +1,40 @@
+<style>
+    img {
+        max-width: 45%;
+        display: block;
+        margin-bottom: 10px;
+    }
+    canvas {
+        position: absolute;
+    }
+
+    .imagenes {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .imagenes > * {
+        padding: 0 1em;
+    }
+
+</style>
+
+<input type="text" id="image1" placeholder="URL de la imagen 1 (referencia)" />
+<input type="text" id="image2" placeholder="URL de la imagen 2 (a comparar)" />
+<button onclick="run()">Comparar Imágenes</button>
+
+<div class="imagenes">
+<canvas id="canvas"></canvas>
+<img id="face1" />
+<img id="face2" />
+
+<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT50rBtXg3fsHuMLt2idatpzylBS96xvNstkQ&s">
+<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTGv0ZIrLidHrXmxdSY38qwW3_FyQZhJo-sFQ&s">
+<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQb-NGEQDekk2BwsllLjk4tcIM_BPIzXECdsg&s">
+<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSf8LZk98dkqzBdcXuQ4OhFcAg4Oiv6Gye9DQ&s">
+
+</div>
+<p id="timeTaken"></p> <!-- Contador para mostrar el tiempo -->
+<script src="./face-api.min.js"></script>
+<script src="./fr-scripts.js"></script>
