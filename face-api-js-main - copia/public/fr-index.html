@@ -1,82 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Camera Comparison</title>
-    <style>
-        video, canvas, img {
-            max-width: 45%;
-        }
-        canvas {
-            position: absolute;
-        }
-    </style>
-</head>
-<body>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Camera Comparison</title>
+        <style>
+            video,
+            canvas,
+            img {
+                max-width: 45%;
+            }
+            canvas {
+                position: absolute;
+            }
+        </style>
+    </head>
+    <body>
+        <h2>Camera</h2>
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas"></canvas>
 
-<h2>Camera</h2>
-<video id="video" autoplay playsinline></video>
-<canvas id="canvas"></canvas>
+        <h2>Upload Image</h2>
+        <input type="file" id="imageUpload" accept="image/*" />
+        <img id="uploadedImage" />
 
-<h2>Upload Image</h2>
-<input type="file" id="imageUpload" accept="image/*" />
-<img id="uploadedImage" />
+        <button id="compareButton">Compare Images</button>
 
-<button id="compareButton">Compare Images</button>
+        <script defer src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+        <script>
+            const video = document.getElementById("video");
+            const canvas = document.getElementById("canvas");
+            const imageUpload = document.getElementById("imageUpload");
+            const uploadedImage = document.getElementById("uploadedImage");
+            const compareButton = document.getElementById("compareButton");
+            let uploadedFaceData;
 
-<script defer src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
-<script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const imageUpload = document.getElementById('imageUpload');
-    const uploadedImage = document.getElementById('uploadedImage');
-    const compareButton = document.getElementById('compareButton');
-    let uploadedFaceData;
+            function startVideo() {
+                navigator.mediaDevices
+                    .getUserMedia({ video: true })
+                    .then((stream) => {
+                        video.srcObject = stream;
+                    })
+                    .catch((err) => {
+                        console.error("Error accessing the camera: ", err);
+                        alert("Could not access the camera.");
+                    });
+            }
 
-    function startVideo() {
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => {
-                video.srcObject = stream;
-            })
-            .catch(err => {
-                console.error("Error accessing the camera: ", err);
-                alert("Could not access the camera.");
+            async function loadModels() {
+                await Promise.all([
+                    faceapi.nets.ssdMobilenetv1.loadFromUri("/models"),
+                    faceapi.nets.faceLandmark68Net.loadFromUri("/models"),
+                    faceapi.nets.faceRecognitionNet.loadFromUri("/models"),
+                ]);
+            }
+
+            imageUpload.addEventListener("change", async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const img = await faceapi.bufferToImage(file);
+                    uploadedImage.src = img.src;
+                    uploadedFaceData = await faceapi
+                        .detectSingleFace(img)
+                        .withFaceLandmarks()
+                        .withFaceDescriptor();
+                }
             });
-    }
 
-    async function loadModels() {
-        await Promise.all([
-            faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
-            faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-            faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
-        ]);
-    }
+            compareButton.addEventListener("click", async () => {
+                const capturedFaceData = await faceapi
+                    .detectSingleFace(video)
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
 
-    imageUpload.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const img = await faceapi.bufferToImage(file);
-            uploadedImage.src = img.src;
-            uploadedFaceData = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
-        }
-    });
+                if (!uploadedFaceData || !capturedFaceData) {
+                    alert("No faces detected in one or both images.");
+                    return;
+                }
 
-    compareButton.addEventListener('click', async () => {
-        const capturedFaceData = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
+                const faceMatcher = new faceapi.FaceMatcher(uploadedFaceData);
+                const result = faceMatcher.findBestMatch(
+                    capturedFaceData.descriptor
+                );
+                alert(result.toString());
+            });
 
-        if (!uploadedFaceData || !capturedFaceData) {
-            alert("No faces detected in one or both images.");
-            return;
-        }
-
-        const faceMatcher = new faceapi.FaceMatcher(uploadedFaceData);
-        const result = faceMatcher.findBestMatch(capturedFaceData.descriptor);
-        alert(result.toString());
-    });
-
-    loadModels().then(startVideo);
-</script>
-
-</body>
+            loadModels().then(startVideo);
+        </script>
+    </body>
 </html>
